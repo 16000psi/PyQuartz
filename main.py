@@ -10,14 +10,21 @@ class Handler:
         parser = argparse.ArgumentParser()
         parser.add_argument(
             "action",
-            choices=["start", "end"],
+            choices=["start", "stop"],
             help="Start or end timer"
         )
 
         args = parser.parse_args()
-        action = getattr, args.action
+        action = getattr(self, args.action)
+        action()
 
-        breakpoint()
+    def start(self):
+
+        print("timer started")
+
+    def stop(self):
+
+        print("timer stopped")
 
 
 if __name__ == "__main__":
