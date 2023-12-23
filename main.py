@@ -125,7 +125,7 @@ class Handler:
     def list(self):
         parser = argparse.ArgumentParser()
         parser.add_argument("action", choices=["list"])
-        parser.add_argument("when", choices=["day", "week"], nargs="?")
+        parser.add_argument("when", choices=["day", "week", "workweek"], nargs="?")
 
         args = parser.parse_args()
         when = args.when
@@ -168,13 +168,32 @@ class Handler:
 
         if not when:
             query_string = query_string_part_1 + query_string_part_2
-            query_parameters = (
-                datetime.now().strftime(self.format),
-            )
+            query_parameters = (datetime.now().strftime(self.format),)
         elif when == "day":
             query_where = "WHERE date(s.starttime) = date(?, 'start of day')"
             query_string = query_string_part_1 + query_where + query_string_part_2
             query_parameters = (
+                datetime.now().strftime(self.format),
+                datetime.now().strftime(self.format),
+            )
+        elif when == "week":
+            query_where = (
+                "WHERE date(s.starttime) BETWEEN date(?, '-7 days') AND date(?)"
+            )
+            query_string = query_string_part_1 + query_where + query_string_part_2
+            query_parameters = (
+                datetime.now().strftime(self.format),
+                datetime.now().strftime(self.format),
+                datetime.now().strftime(self.format),
+            )
+        elif when == "workweek":
+            query_where = """
+                WHERE strftime('%w', s.starttime) >= strftime('%w', ?)
+                AND date(s.starttime) >= date(?, 'weekday 1', '-7 days')
+                """
+            query_string = query_string_part_1 + query_where + query_string_part_2
+            query_parameters = (
+                datetime.now().strftime(self.format),
                 datetime.now().strftime(self.format),
                 datetime.now().strftime(self.format),
             )
