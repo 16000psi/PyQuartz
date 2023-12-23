@@ -99,7 +99,7 @@ class Handler:
                 ).fetchone()[0]
             except TypeError:
                 # If timer does not exist
-                print(f"Timer \"{timer_title}\" does not exist.")
+                print(f'Timer "{timer_title}" does not exist.')
                 return
 
             self.cur.execute(
@@ -123,8 +123,14 @@ class Handler:
         self.con.commit()
 
     def list(self):
-        session_tuples = self.cur.execute(
-            """
+        parser = argparse.ArgumentParser()
+        parser.add_argument("action", choices=["list"])
+        parser.add_argument("when", choices=["day", "week"], nargs="?")
+
+        args = parser.parse_args()
+        when = args.when
+
+        query_string_part_1 = """
             WITH sessions_length AS (
             SELECT
             t.title,
@@ -151,13 +157,29 @@ class Handler:
             FROM sessions s
             INNER JOIN timers t
             ON s.sessiontimer = t.timer_id
+            """
+
+        query_string_part_2 = """
             )
             SELECT title, sum(length_seconds), MIN(completed)
             FROM sessions_length
             GROUP BY sessiontimer;
-            """,
-            (datetime.now().strftime(self.format),),
-        ).fetchall()
+            """
+
+        if not when:
+            query_string = query_string_part_1 + query_string_part_2
+            query_parameters = (
+                datetime.now().strftime(self.format),
+            )
+        elif when == "day":
+            query_where = "WHERE date(s.starttime) = date(?, 'start of day')"
+            query_string = query_string_part_1 + query_where + query_string_part_2
+            query_parameters = (
+                datetime.now().strftime(self.format),
+                datetime.now().strftime(self.format),
+            )
+
+        session_tuples = self.cur.execute(query_string, query_parameters).fetchall()
 
         for session in session_tuples:
             time_delta = timedelta(seconds=session[1])
