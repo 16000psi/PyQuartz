@@ -19,13 +19,38 @@ class Handler:
         parser.add_argument(
             "action", choices=["start", "stop", "list"], help="Start or end timer"
         )
+        parser.add_argument("other", nargs="?")
 
         args = parser.parse_args()
         action = getattr(self, args.action)
         action()
 
     def start(self):
-        print("timer started")
+        parser = argparse.ArgumentParser()
+        parser.add_argument("action", choices=["start"])
+        parser.add_argument("timer_title", nargs="?")
+
+        args = parser.parse_args()
+        timer_title = args.timer_title
+
+        self.cur.execute(
+            """
+            INSERT INTO timers (title) VALUES (?);
+            """,
+            (timer_title,),
+        )
+        new_timer_id = self.cur.lastrowid
+
+        breakpoint()
+        self.cur.execute(
+            """
+            INSERT INTO SESSIONS (sessiontimer, starttime) VALUES (?, ?);
+            """,
+            (new_timer_id, datetime.now().strftime(self.format)),
+        )
+
+        self.con.commit()
+        self.con.close()
 
     def stop(self):
         print("timer stopped")
@@ -105,6 +130,7 @@ class Handler:
             (datetime.now().strftime(self.format), None),
         )
         self.con.commit()
+        self.con.close()
 
     def generate_random_datetime_pair(self):
         start_date = datetime.now() - timedelta(days=30)
