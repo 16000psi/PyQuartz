@@ -80,45 +80,60 @@ class Handler:
         breakpoint()
 
     def list(self):
-        timer_tuples = self.cur.execute("SELECT * FROM timers").fetchall()
-        sessions_tuples = self.cur.execute("SELECT * FROM sessions").fetchall()
-        sessions = []
-        timers = []
-        for session in sessions_tuples:
-            session_dict = {}
-            session_dict["timer_id"] = session[0]
-            session_dict["started_at"] = datetime.strptime(session[2], self.format)
-            if session[3]:
-                session_dict["ended_at"] = datetime.strptime(session[3], self.format)
-                session_dict["length"] = (
-                    session_dict["ended_at"] - session_dict["started_at"]
-                )
-            else:
-                session_dict["length"] = datetime.now() - session_dict["started_at"]
-            sessions.append(session_dict)
-
-        for timer in timer_tuples:
-            timer_sessions = [
-                session for session in sessions if session["timer_id"] == timer[0]
-            ]
-            total_time = sum(
-                [session["length"] for session in timer_sessions], timedelta()
+        session_tuples = self.cur.execute(
+            """
+            WITH sessions_length AS (
+            SELECT
+            t.title,
+            s.sessiontimer,
+            s.session_id,
+            s.starttime,
+            s.endtime,
+            (
+            SELECT CASE
+                WHEN s.endtime IS NULL THEN
+                    strftime('%s', datetime(strftime('%s', ?)
+                    - strftime('%s', s.starttime), 'unixepoch'))
+                ELSE
+                    strftime('%s', datetime(strftime('%s', s.endtime)
+                    - strftime('%s', s.starttime), 'unixepoch'))
+                END
+            ) AS length_seconds,
+            (
+            SELECT CASE
+                WHEN s.endtime IS NULL THEN 0
+                ELSE 1
+                END
+            ) AS completed
+            FROM sessions s
+            INNER JOIN timers t
+            ON s.sessiontimer = t.timer_id
             )
-            timers.append({"title": timer[1], "total_time": total_time})
+            SELECT title, sum(length_seconds), MIN(completed)
+            FROM sessions_length
+            GROUP BY sessiontimer;
+            """,
+            (datetime.now().strftime(self.format),),
+        ).fetchall()
+        for session in session_tuples:
+            time_delta = timedelta(seconds=session[1])
+            hours, remainder = divmod(time_delta.seconds, 3600)
+            minutes, seconds = divmod(remainder, 60)
 
-        for timer in timers:
-            print(f" - {timer['title']}: {timer['total_time']}")
+            time_string = "{:02d}:{:02d}:{:02d}".format(hours, minutes, seconds)
+
+            print(f"- {session[0]}: {time_string}. {session[2]}")
 
     def session_list(self):
         sessions_tuples = self.cur.execute(
             """
-        SELECT timers.title,
-        sessions.session_id,
-        sessions.starttime,
-        sessions.endtime
-        FROM timers INNER JOIN sessions
-        on timers.timer_id = sessions.sessiontimer;
-        """
+            SELECT timers.title,
+            sessions.session_id,
+            sessions.starttime,
+            sessions.endtime
+            FROM timers INNER JOIN sessions
+            on timers.timer_id = sessions.sessiontimer;
+            """
         ).fetchall()
 
         sessions = [
@@ -135,7 +150,6 @@ class Handler:
             print(
                 f" - {session['title']}: session {session['session_id']}, {session['starttime']} - {session['endtime']}"
             )
-
 
     def create_tables(self):
         self.cur.execute(
