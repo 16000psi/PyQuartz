@@ -46,12 +46,13 @@ class Handler:
             ).fetchone()[0]
 
             unfinished_sessions = self.cur.execute(
-                  """
-                  SELECT * FROM sessions
-                  WHERE sessiontimer = ?
-                  AND endtime IS NULL
-                  """,
-                  (timer_id,)
+                 # Check no running session for timer
+                 """
+                 SELECT * FROM sessions
+                 WHERE sessiontimer = ?
+                 AND endtime IS NULL
+                 """,
+                 (timer_id,)
             ).fetchone()
 
             if unfinished_sessions:
@@ -61,6 +62,7 @@ class Handler:
         except TypeError:
             # Timer does not already exist
             self.cur.execute(
+                # Create new timer
                 """
                 INSERT INTO timers (title) VALUES (?);
                 """,
@@ -69,6 +71,7 @@ class Handler:
             timer_id = self.cur.lastrowid
 
         self.cur.execute(
+            # Create new session for timer
             """
             INSERT INTO SESSIONS (sessiontimer, starttime) VALUES (?, ?);
             """,
