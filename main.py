@@ -187,7 +187,7 @@ class Handler:
             """
             CREATE TABLE sessions (
                 session_id INTEGER PRIMARY KEY,
-                sessiontimer INTEGER REFERENCES timers(timer_id),
+                sessiontimer INTEGER REFERENCES timers(timer_id) ON DELETE CASCADE,
                 starttime TEXT,
                 endtime TEXT
                 );
