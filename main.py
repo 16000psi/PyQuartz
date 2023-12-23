@@ -17,13 +17,16 @@ class Handler:
     def handle(self):
         parser = argparse.ArgumentParser()
         parser.add_argument(
-            "action", choices=["start", "stop", "list"], help="Start or end timer"
+            "action",
+            choices=["start", "stop", "list", "session_list"],
+            help="Start or end timer",
         )
         parser.add_argument("other", nargs="?")
 
         args = parser.parse_args()
         action = getattr(self, args.action)
         action()
+        self.con.close()
 
     def start(self):
         parser = argparse.ArgumentParser()
@@ -41,7 +44,6 @@ class Handler:
         )
         new_timer_id = self.cur.lastrowid
 
-        breakpoint()
         self.cur.execute(
             """
             INSERT INTO SESSIONS (sessiontimer, starttime) VALUES (?, ?);
@@ -50,10 +52,32 @@ class Handler:
         )
 
         self.con.commit()
-        self.con.close()
 
     def stop(self):
-        print("timer stopped")
+        parser = argparse.ArgumentParser()
+        parser.add_argument("action", choices=["stop"])
+        parser.add_argument("timer_title", nargs="?")
+
+        args = parser.parse_args()
+        timer_title = args.timer_title
+
+        timer_id = self.cur.execute(
+            """
+            SELECT timer_id FROM timers WHERE title = ?;
+            """,
+            (timer_title,),
+        ).fetchone()[0]
+
+        self.cur.execute(
+            """
+            UPDATE sessions SET endtime = ?
+            WHERE endtime IS NULL
+            AND sessiontimer = ?;
+            """,
+            (datetime.now().strftime(self.format), timer_id),
+        )
+        self.con.commit()
+        breakpoint()
 
     def list(self):
         timer_tuples = self.cur.execute("SELECT * FROM timers").fetchall()
@@ -80,10 +104,38 @@ class Handler:
             total_time = sum(
                 [session["length"] for session in timer_sessions], timedelta()
             )
-            timers.append({"title": timer[0], "total_time": total_time})
+            timers.append({"title": timer[1], "total_time": total_time})
 
         for timer in timers:
             print(f" - {timer['title']}: {timer['total_time']}")
+
+    def session_list(self):
+        sessions_tuples = self.cur.execute(
+            """
+        SELECT timers.title,
+        sessions.session_id,
+        sessions.starttime,
+        sessions.endtime
+        FROM timers INNER JOIN sessions
+        on timers.timer_id = sessions.sessiontimer;
+        """
+        ).fetchall()
+
+        sessions = [
+            {
+                "title": session[0],
+                "session_id": session[1],
+                "starttime": session[2],
+                "endtime": session[3],
+            }
+            for session in sessions_tuples
+        ]
+
+        for session in sessions:
+            print(
+                f" - {session['title']}: session {session['session_id']}, {session['starttime']} - {session['endtime']}"
+            )
+
 
     def create_tables(self):
         self.cur.execute(
@@ -98,7 +150,7 @@ class Handler:
             """
             CREATE TABLE sessions (
                 session_id INTEGER PRIMARY KEY,
-                sessiontimer INTEGER REFERENCES timer(timer_id),
+                sessiontimer INTEGER REFERENCES timers(timer_id),
                 starttime TEXT,
                 endtime TEXT
                 );
@@ -130,7 +182,6 @@ class Handler:
             (datetime.now().strftime(self.format), None),
         )
         self.con.commit()
-        self.con.close()
 
     def generate_random_datetime_pair(self):
         start_date = datetime.now() - timedelta(days=30)
