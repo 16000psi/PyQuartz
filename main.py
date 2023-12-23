@@ -46,13 +46,13 @@ class Handler:
             ).fetchone()[0]
 
             unfinished_sessions = self.cur.execute(
-                 # Check no running session for timer
-                 """
+                # Check no running session for timer
+                """
                  SELECT * FROM sessions
                  WHERE sessiontimer = ?
                  AND endtime IS NULL
                  """,
-                 (timer_id,)
+                (timer_id,),
             ).fetchone()
 
             if unfinished_sessions:
@@ -90,12 +90,17 @@ class Handler:
 
         if timer_title:
             # If a title is supplied stop that timer
-            timer_id = self.cur.execute(
-                """
-                SELECT timer_id FROM timers WHERE title = ?;
-                """,
-                (timer_title,),
-            ).fetchone()[0]
+            try:
+                timer_id = self.cur.execute(
+                    """
+                    SELECT timer_id FROM timers WHERE title = ?;
+                    """,
+                    (timer_title,),
+                ).fetchone()[0]
+            except TypeError:
+                # If timer does not exist
+                print(f"Timer \"{timer_title}\" does not exist.")
+                return
 
             self.cur.execute(
                 """
