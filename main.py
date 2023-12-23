@@ -72,21 +72,33 @@ class Handler:
         args = parser.parse_args()
         timer_title = args.timer_title
 
-        timer_id = self.cur.execute(
-            """
-            SELECT timer_id FROM timers WHERE title = ?;
-            """,
-            (timer_title,),
-        ).fetchone()[0]
+        if timer_title:
+            # If a title is supplied stop that timer
+            timer_id = self.cur.execute(
+                """
+                SELECT timer_id FROM timers WHERE title = ?;
+                """,
+                (timer_title,),
+            ).fetchone()[0]
 
-        self.cur.execute(
-            """
-            UPDATE sessions SET endtime = ?
-            WHERE endtime IS NULL
-            AND sessiontimer = ?;
-            """,
-            (datetime.now().strftime(self.format), timer_id),
-        )
+            self.cur.execute(
+                """
+                UPDATE sessions SET endtime = ?
+                WHERE endtime IS NULL
+                AND sessiontimer = ?;
+                """,
+                (datetime.now().strftime(self.format), timer_id),
+            )
+
+        else:
+            # If no title is supplied, stop all timers
+            self.cur.execute(
+                """
+                UPDATE sessions SET endtime = ?
+                WHERE endtime IS NULL
+                """,
+                (datetime.now().strftime(self.format),),
+            )
         self.con.commit()
 
     def list(self):
