@@ -31,9 +31,10 @@ class Handler:
         print("timer stopped")
 
     def list(self):
-        timers = self.cur.execute("SELECT * FROM timers").fetchall()
+        timer_tuples = self.cur.execute("SELECT * FROM timers").fetchall()
         sessions_tuples = self.cur.execute("SELECT * FROM sessions").fetchall()
         sessions = []
+        timers = []
         for session in sessions_tuples:
             session_dict = {}
             session_dict["timer_id"] = session[0]
@@ -47,9 +48,17 @@ class Handler:
                 session_dict["length"] = datetime.now() - session_dict["started_at"]
             sessions.append(session_dict)
 
-        # for timer in timers:
+        for timer in timer_tuples:
+            timer_sessions = [
+                session for session in sessions if session["timer_id"] == timer[0]
+            ]
+            total_time = sum(
+                [session["length"] for session in timer_sessions], timedelta()
+            )
+            timers.append({"title": timer[0], "total_time": total_time})
 
-        breakpoint()
+        for timer in timers:
+            print(f" - {timer['title']}: {timer['total_time']}")
 
     def create_tables(self):
         self.cur.execute(
