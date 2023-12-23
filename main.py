@@ -36,19 +36,30 @@ class Handler:
         args = parser.parse_args()
         timer_title = args.timer_title
 
-        self.cur.execute(
-            """
-            INSERT INTO timers (title) VALUES (?);
-            """,
-            (timer_title,),
-        )
-        new_timer_id = self.cur.lastrowid
+        try:
+            # Timer does exist
+            timer_id = self.cur.execute(
+                """
+                SELECT timer_id FROM timers WHERE title = ?;
+                """,
+                (timer_title,),
+            ).fetchone()[0]
+
+        except TypeError:
+            # Timer does not already exist
+            self.cur.execute(
+                """
+                INSERT INTO timers (title) VALUES (?);
+                """,
+                (timer_title,),
+            )
+            timer_id = self.cur.lastrowid
 
         self.cur.execute(
             """
             INSERT INTO SESSIONS (sessiontimer, starttime) VALUES (?, ?);
             """,
-            (new_timer_id, datetime.now().strftime(self.format)),
+            (timer_id, datetime.now().strftime(self.format)),
         )
 
         self.con.commit()
@@ -77,7 +88,6 @@ class Handler:
             (datetime.now().strftime(self.format), timer_id),
         )
         self.con.commit()
-        breakpoint()
 
     def list(self):
         session_tuples = self.cur.execute(
@@ -115,6 +125,7 @@ class Handler:
             """,
             (datetime.now().strftime(self.format),),
         ).fetchall()
+
         for session in session_tuples:
             time_delta = timedelta(seconds=session[1])
             hours, remainder = divmod(time_delta.seconds, 3600)
