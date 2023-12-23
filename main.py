@@ -45,6 +45,19 @@ class Handler:
                 (timer_title,),
             ).fetchone()[0]
 
+            unfinished_sessions = self.cur.execute(
+                  """
+                  SELECT * FROM sessions
+                  WHERE sessiontimer = ?
+                  AND endtime IS NULL
+                  """,
+                  (timer_id,)
+            ).fetchone()
+
+            if unfinished_sessions:
+                print(f"{timer_title} is already running!")
+                return
+
         except TypeError:
             # Timer does not already exist
             self.cur.execute(
