@@ -25,6 +25,10 @@ Stops all timers by default, if passed with a timer name only that timer will be
 
 Lists all sessions. Sessions are indivdual spans of time which belong to timers and are summed together to get the total time for a timer.  Each time a timer is started, a new session is created for that timer.
 
+#### delete
+
+Deletes the timer matching the passed name.
+
 
 ### Development objectives
 
