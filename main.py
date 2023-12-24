@@ -18,7 +18,7 @@ class Handler:
         parser = argparse.ArgumentParser()
         parser.add_argument(
             "action",
-            choices=["start", "stop", "list", "session_list"],
+            choices=["start", "stop", "list", "session_list", "delete"],
             help="Start or end timer",
         )
         parser.add_argument("other", nargs="?")
@@ -120,6 +120,29 @@ class Handler:
                 """,
                 (datetime.now().strftime(self.format),),
             )
+        self.con.commit()
+
+    def delete(self):
+
+        parser = argparse.ArgumentParser()
+        parser.add_argument("action", choices=["delete"])
+        parser.add_argument("timer_title", nargs="?")
+
+        args = parser.parse_args()
+        timer_title = args.timer_title
+
+        self.cur.execute(
+            """
+            DELETE FROM timers WHERE title = ?;
+            """,
+            (timer_title,)
+        )
+
+        if self.cur.rowcount:
+            print(f"Timer \"{timer_title}\" sucessfully deleted.")
+        else:
+            print("No timer by that name - delete unsuccessful.")
+
         self.con.commit()
 
     def list(self):
