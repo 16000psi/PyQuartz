@@ -30,6 +30,7 @@ Lists all sessions. Sessions are indivdual spans of time which belong to timers 
 
 The current plan is to use the program in its current state for tracking my work to see how it should be changed to make it better for practical use.  Current ideas:
 
+- Timer deletion: this is an obvious todo.
 - Archiving: If the timer app is used often, listing all will become useless as many old timers will be shown.  Archiving would allow timers to be kept whilst being not listed by default. With that in mind, automatically archiving timers based on certain conditions (e.g. not used for 30 days) could be a good feature.
 - Day / Week summary:  It would be really useful to see a breakdown of sessions over the day for filling in timesheets. 
 - Groups: It would be cool to create optional groupings so that individual tasks could be tracked as part of larger projects more easily (for instance "Ticket 3235" belongs to "Project X", and tracking time for the ticket automatically tracks time for the project).
